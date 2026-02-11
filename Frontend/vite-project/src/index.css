@@ -128,6 +128,10 @@ a {
   z-index: 10;
 }
 
+.rc-nav-left {
+  grid-column: 1;
+}
+
 .rc-logo {
   display: inline-flex;
   align-items: center;
@@ -188,6 +192,8 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
+  grid-column: 3;
+  justify-self: end;
 }
 
 .rc-nav-btn {
@@ -204,6 +210,109 @@ a {
 
 .rc-nav-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.rc-nav-profile {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rc-nav-profile-btn {
+  padding: 8px 12px;
+}
+
+.rc-nav-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.rc-nav-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rc-nav-avatar {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: #fff;
+  overflow: hidden;
+}
+
+.rc-nav-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rc-nav-name {
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+}
+
+.rc-nav-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+}
+
+.rc-nav-menu a,
+.rc-nav-menu button {
+  width: 100%;
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  text-decoration: none;
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rc-nav-menu a:hover,
+.rc-nav-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rc-nav-dashboard {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #151515;
+  border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 /* Hero */
@@ -456,5 +565,12 @@ a {
 
   .rc-nav-right {
     justify-content: center;
+    grid-column: auto;
+    justify-self: center;
+  }
+
+  .rc-nav-left {
+    grid-column: auto;
+    justify-self: center;
   }
 }

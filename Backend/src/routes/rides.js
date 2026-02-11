@@ -43,6 +43,17 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// Ride details
+router.get('/:id', async (req, res, next) => {
+  try {
+    const ride = await Ride.findById(req.params.id).populate('driver', 'name role');
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+    res.json(ride);
+  } catch (e) {
+    next(e);
+  }
+});
+
 // Driver's rides
 router.get('/mine', auth('driver'), async (req, res, next) => {
   try {

@@ -1,6 +1,6 @@
-import { useNavigate, Link } from 'react-router-dom'
+import { useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
-import logo from '../assets/Logo.png'
+import { api } from '../lib/api'
 import './pages.css'
 
 function initials(name = '') {
@@ -13,57 +13,143 @@ function initials(name = '') {
 }
 
 export default function Profile() {
-  const nav = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, token, setUserProfile } = useAuth()
+  const fileRef = useRef(null)
 
-  const onLogout = () => {
-    logout()
-    nav('/')
+  const [name, setName] = useState(user?.name || '')
+  const [phone, setPhone] = useState(user?.phone || '')
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+
+  const avatarUrl = useMemo(() => {
+    if (!user?.avatarPath) return ''
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    return `${base}${user.avatarPath}`
+  }, [user?.avatarPath])
+
+  const onPickPhoto = () => {
+    setStatus('')
+    setError('')
+    fileRef.current?.click()
+  }
+
+  const onPhotoSelected = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setStatus('')
+    setError('')
+    setIsUploading(true)
+    try {
+      const res = await api.uploadAvatar(token, file)
+      if (res?.user) setUserProfile(res.user)
+      setStatus('Photo updated')
+    } catch (err) {
+      setError(err.message || 'Photo upload failed')
+    } finally {
+      setIsUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  const onRemovePhoto = async () => {
+    setStatus('')
+    setError('')
+    setIsUploading(true)
+    try {
+      const res = await api.removeAvatar(token)
+      if (res?.user) setUserProfile(res.user)
+      setStatus('Photo removed')
+    } catch (err) {
+      setError(err.message || 'Remove photo failed')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const onSave = async () => {
+    setStatus('')
+    setError('')
+    setIsSaving(true)
+    try {
+      const res = await api.updateMe(token, { name, phone })
+      if (res?.user) setUserProfile(res.user)
+      setStatus('Details saved')
+    } catch (err) {
+      setError(err.message || 'Save failed')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
     <div className="rc-profile">
       <div className="rc-dash-overlay" />
 
-      <header className="rc-dash-top">
-        <div className="rc-dash-brand">
-          <Link to="/" className="rc-brand" aria-label="ShareOcar">
-            <img className="rc-brand-mark" src={logo} alt="" />
-            <div className="rc-brand-text">
-              Share<span>Ocar</span>
-            </div>
-          </Link>
-        </div>
-        <div aria-hidden />
-        <div className="rc-dash-user">
-          <button type="button" className="rc-nav-btn" onClick={onLogout}>Logout</button>
-        </div>
-      </header>
-
       <main className="rc-profile-main">
         <div className="rc-profile-card">
           <div className="rc-profile-photo" aria-label="Profile photo">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M12 12a4.2 4.2 0 1 0 0-8.4A4.2 4.2 0 0 0 12 12Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M4.2 21c1.6-4.3 5-6.4 7.8-6.4s6.2 2.1 7.8 6.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-            <div className="rc-profile-initials">{initials(user?.name || 'U')}</div>
+            {avatarUrl ? (
+              <img className="rc-profile-img" src={avatarUrl} alt="" />
+            ) : (
+              <>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M12 12a4.2 4.2 0 1 0 0-8.4A4.2 4.2 0 0 0 12 12Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M4.2 21c1.6-4.3 5-6.4 7.8-6.4s6.2 2.1 7.8 6.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+                <div className="rc-profile-initials">{initials(user?.name || 'U')}</div>
+              </>
+            )}
           </div>
 
-          <h1 className="rc-profile-title">{user?.name || 'User'}</h1>
+          <div className="rc-profile-photo-actions">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="rc-profile-file"
+              onChange={onPhotoSelected}
+            />
+            <button type="button" className="rc-btn small ghost" onClick={onPickPhoto} disabled={isUploading || !token}>
+              {isUploading ? 'Working…' : 'Change photo'}
+            </button>
+            <button
+              type="button"
+              className="rc-btn small ghost"
+              onClick={onRemovePhoto}
+              disabled={isUploading || !token || !user?.avatarPath}
+            >
+              Remove
+            </button>
+          </div>
 
-          <div className="rc-profile-details">
-            <div className="rc-profile-row">
+          <h1 className="rc-profile-title">Profile</h1>
+
+          {error && <div className="rc-error">{error}</div>}
+          {status && <div className="rc-success">{status}</div>}
+
+          <div className="rc-profile-form">
+            <label className="rc-profile-field">
+              <div className="rc-profile-k">Name</div>
+              <input value={name} onChange={(e) => setName(e.target.value)} />
+            </label>
+
+            <label className="rc-profile-field">
+              <div className="rc-profile-k">Phone</div>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </label>
+
+            <label className="rc-profile-field">
               <div className="rc-profile-k">Email</div>
-              <div className="rc-profile-v">{user?.email || '—'}</div>
-            </div>
-            <div className="rc-profile-row">
-              <div className="rc-profile-k">Role</div>
-              <div className="rc-profile-v">{user?.role || '—'}</div>
-            </div>
+              <input value={user?.email || ''} readOnly />
+            </label>
           </div>
 
-          <Link className="rc-btn ghost" to="/passenger">Back to Dashboard</Link>
+          <button type="button" className="rc-btn" onClick={onSave} disabled={isSaving || !token}>
+            {isSaving ? 'Saving…' : 'Save details'}
+          </button>
         </div>
       </main>
     </div>

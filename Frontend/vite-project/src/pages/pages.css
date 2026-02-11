@@ -17,7 +17,7 @@
 .rc-profile-main {
 	position: relative;
 	z-index: 1;
-	padding: 34px 16px 46px;
+	padding: 140px 16px 46px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -47,6 +47,24 @@
 	position: relative;
 }
 
+.rc-profile-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: 999px;
+}
+
+.rc-profile-photo-actions {
+	display: flex;
+	gap: 10px;
+	justify-content: center;
+	margin: 0 0 18px;
+}
+
+.rc-profile-file {
+	display: none;
+}
+
 .rc-profile-initials {
 	position: absolute;
 	inset: 0;
@@ -68,6 +86,35 @@
 	gap: 10px;
 	margin: 0 auto 18px;
 	text-align: left;
+}
+
+.rc-profile-form {
+	display: grid;
+	gap: 12px;
+	margin: 0 auto 18px;
+	text-align: left;
+}
+
+.rc-profile-field {
+	display: grid;
+	gap: 8px;
+	padding: 12px;
+	border-radius: 14px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.rc-profile-field input {
+	background: rgba(245, 247, 250, 0.92);
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	color: #151515;
+	padding: 13px 14px;
+	border-radius: 12px;
+	outline: none;
+}
+
+.rc-profile-field input[readonly] {
+	opacity: 0.9;
 }
 
 .rc-profile-row {
@@ -212,6 +259,288 @@
 	font-weight: 700;
 }
 
+/* Book a Seat (RideBooking) */
+.rc-book-inner {
+	max-width: 980px;
+}
+
+.rc-book-title {
+	margin: 0 0 18px;
+	font-size: 40px;
+	letter-spacing: -0.01em;
+	text-shadow: 0 8px 26px rgba(0, 0, 0, 0.6);
+}
+
+.rc-book-ride {
+	width: min(860px, 100%);
+	padding: 18px;
+	border-radius: 22px;
+	background: rgba(0, 0, 0, 0.55);
+	border: 1px solid var(--glass-border);
+	backdrop-filter: blur(10px);
+	box-shadow: var(--shadow);
+	margin: 0 0 18px;
+}
+
+.rc-book-ride-row {
+	display: flex;
+	gap: 14px;
+	align-items: center;
+}
+
+.rc-book-pin {
+	width: 44px;
+	height: 44px;
+	border-radius: 16px;
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	background: rgba(255, 255, 255, 0.08);
+	display: grid;
+	place-items: center;
+	color: rgba(255, 255, 255, 0.92);
+	flex: 0 0 auto;
+}
+
+.rc-book-route {
+	font-weight: 900;
+	font-size: 20px;
+}
+
+.rc-book-panel {
+	width: min(860px, 100%);
+	padding: 18px;
+	border-radius: 22px;
+	background: rgba(0, 0, 0, 0.55);
+	border: 1px solid var(--glass-border);
+	backdrop-filter: blur(10px);
+	box-shadow: var(--shadow);
+}
+
+.rc-book-panel-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.rc-book-panel-title {
+	font-weight: 900;
+	font-size: 18px;
+}
+
+.rc-book-seats {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.rc-book-panel select {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	color: #fff;
+	padding: 10px 12px;
+	border-radius: 12px;
+	outline: none;
+	color-scheme: dark;
+}
+
+.rc-book-panel select option {
+	background: #0b0e13;
+	color: #fff;
+}
+
+.rc-book-passenger {
+	padding: 14px 0;
+	border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.rc-book-passenger:first-of-type {
+	border-top: 0;
+	padding-top: 6px;
+}
+
+.rc-book-passenger-h {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-weight: 900;
+	color: rgba(255, 255, 255, 0.90);
+	margin-bottom: 12px;
+}
+
+.rc-book-person {
+	width: 22px;
+	height: 22px;
+	display: grid;
+	place-items: center;
+	opacity: 0.9;
+}
+
+.rc-book-grid {
+	display: grid;
+	grid-template-columns: 1.3fr 1.3fr 0.8fr;
+	gap: 14px;
+}
+
+.rc-book-field {
+	display: grid;
+	gap: 8px;
+}
+
+.rc-book-label {
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.78);
+}
+
+.rc-book-panel input {
+	background: rgba(245, 247, 250, 0.92);
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	color: #151515;
+	padding: 13px 14px;
+	border-radius: 12px;
+	outline: none;
+}
+
+.rc-book-panel input::placeholder {
+	color: rgba(21, 21, 21, 0.65);
+}
+
+.rc-book-phone {
+	display: grid;
+	grid-template-columns: 92px 1fr;
+	gap: 10px;
+	align-items: center;
+}
+
+.rc-book-phone select {
+	background: rgba(245, 247, 250, 0.92);
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	color: #151515;
+	padding: 13px 12px;
+	border-radius: 12px;
+	outline: none;
+	color-scheme: light;
+}
+
+.rc-book-phone select option {
+	background: #ffffff;
+	color: #151515;
+}
+
+.rc-book-luggage {
+	margin-top: 10px;
+	max-width: 280px;
+}
+
+.rc-book-cta {
+	margin-top: 10px;
+	border-radius: 14px;
+}
+
+@media (max-width: 900px) {
+	.rc-book-title {
+		font-size: 34px;
+	}
+
+	.rc-book-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.rc-book-luggage {
+		max-width: none;
+	}
+}
+
+/* My Rides (Bookings list) */
+.rc-my-inner {
+	max-width: 980px;
+}
+
+.rc-my-title {
+	margin: 0 0 18px;
+	font-size: 40px;
+	letter-spacing: -0.01em;
+	text-shadow: 0 8px 26px rgba(0, 0, 0, 0.6);
+}
+
+.rc-my-list {
+	width: min(860px, 100%);
+	display: grid;
+	gap: 14px;
+}
+
+.rc-my-item {
+	padding: 18px;
+	border-radius: 22px;
+	background: rgba(0, 0, 0, 0.55);
+	border: 1px solid var(--glass-border);
+	backdrop-filter: blur(10px);
+	box-shadow: var(--shadow);
+}
+
+.rc-my-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.rc-my-route {
+	font-weight: 900;
+	font-size: 20px;
+}
+
+.rc-my-pill {
+	flex: 0 0 auto;
+	padding: 8px 12px;
+	border-radius: 999px;
+	font-weight: 900;
+	font-size: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	background: rgba(255, 178, 77, 0.12);
+	color: rgba(255, 255, 255, 0.92);
+}
+
+.rc-my-pill--confirmed {
+	background: rgba(158, 243, 158, 0.12);
+}
+
+.rc-my-pill--rejected {
+	background: rgba(255, 139, 139, 0.12);
+}
+
+.rc-my-pill--cancelled {
+	background: rgba(185, 192, 204, 0.14);
+}
+
+.rc-my-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.rc-my-meta {
+	margin-top: 10px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.rc-my-sub {
+	margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+	.rc-my-title {
+		font-size: 34px;
+	}
+
+	.rc-my-top {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
 .rc-dash-body {
 	position: relative;
 	z-index: 1;
@@ -220,6 +549,17 @@
 	gap: 20px;
 	padding: 0 22px 38px;
 	align-items: start;
+}
+
+.rc-driver-requests {
+	margin-top: 18px;
+	max-width: 920px;
+}
+
+.rc-section-h {
+	margin: 18px 0 10px;
+	font-size: 18px;
+	letter-spacing: -0.01em;
 }
 
 .rc-dash-side {

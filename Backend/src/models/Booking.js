@@ -6,9 +6,17 @@ const BookingSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     type: { type: String, enum: ['seat', 'parcel'], required: true },
     seatsCount: { type: Number, min: 1 },
+    passengers: [
+      {
+        name: { type: String },
+        phone: { type: String },
+        age: { type: Number, min: 0 },
+        luggageCount: { type: Number, min: 0 }
+      }
+    ],
     parcelDetails: { type: String },
-    paymentMethod: { type: String, enum: ['UPI', 'Card', 'Cash'], required: true },
-    status: { type: String, enum: ['pending', 'confirmed', 'cancelled'], default: 'confirmed' }
+    paymentMethod: { type: String, enum: ['UPI', 'Card', 'Cash', 'BillDesk'], required: true },
+    status: { type: String, enum: ['pending', 'confirmed', 'rejected', 'cancelled'], default: 'pending' }
   },
   { timestamps: true }
 );

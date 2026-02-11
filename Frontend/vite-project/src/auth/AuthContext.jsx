@@ -29,8 +29,13 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('rc_user')
   }
 
+  const setUserProfile = (nextUser) => {
+    setUser(nextUser)
+    localStorage.setItem('rc_user', JSON.stringify(nextUser))
+  }
+
   return (
-    <AuthCtx.Provider value={{ user, token, login, logout }}>
+    <AuthCtx.Provider value={{ user, token, login, logout, setUserProfile }}>
       {children}
     </AuthCtx.Provider>
   )
