@@ -25,6 +25,7 @@ app.use(
       if (!origin) return cb(null, true);
       if (allowedOrigins.includes(origin)) return cb(null, true);
       if (/^http:\/\/localhost:\d{4}$/.test(origin)) return cb(null, true);
+      if (/^https:\/\/.*\.netlify\.app$/.test(origin)) return cb(null, true);
       return cb(new Error('Not allowed by CORS'));
     },
     credentials: true,
