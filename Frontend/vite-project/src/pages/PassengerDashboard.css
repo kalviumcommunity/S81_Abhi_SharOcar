@@ -32,7 +32,7 @@
 }
 
 .pd-title {
-    font-size: 3rem;
+    font-size: clamp(2rem, 4.6vw, 3rem);
     font-weight: 700;
     margin: 0;
     letter-spacing: -0.02em;
@@ -90,6 +90,13 @@
     transition: transform 0.1s;
 }
 
+.pd-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .pd-search-btn:active {
     transform: scale(0.96);
 }
@@ -129,6 +136,7 @@
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.14);
 }
 
 .pd-ride-info {
@@ -146,6 +154,7 @@
 .pd-meta {
     display: flex;
     gap: 12px;
+    flex-wrap: wrap;
     color: rgba(255, 255, 255, 0.6);
     font-size: 0.95rem;
 }
@@ -181,6 +190,10 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
+.pd-view-btn.subtle {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 /* Helper messages */
 .pd-success {
     background: rgba(100, 255, 100, 0.1);
@@ -196,4 +209,67 @@
     font-style: italic;
     padding: 20px;
     text-align: center;
+}
+
+@media (max-width: 900px) {
+    .pd-content {
+        padding: 0 16px;
+    }
+
+    .pd-search-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pd-search-btn {
+        min-height: 44px;
+        padding: 0 18px;
+    }
+
+    .pd-ride-card {
+        grid-template-columns: auto 1fr;
+        align-items: start;
+    }
+
+    .pd-right {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
+    }
+
+    .pd-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 600px) {
+    .pd-container {
+        padding-top: 90px;
+    }
+
+    .pd-search-form {
+        grid-template-columns: 1fr;
+    }
+
+    .pd-search-btn {
+        width: 100%;
+        padding: 12px 16px;
+    }
+
+    .pd-ride-card {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .pd-driver-avatar {
+        width: 54px;
+        height: 54px;
+    }
+
+    .pd-right {
+        grid-column: auto;
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }

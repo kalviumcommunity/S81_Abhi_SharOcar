@@ -100,7 +100,7 @@ export default function PassengerDashboard() {
                 className="pd-ride-card"
               >
                 {/* Avatar placeholder if no driver info, or use default */}
-                <div className="pd-driver-avatar" style={{ background: '#ddd' }}></div>
+                <div className="pd-driver-avatar" />
 
                 <div className="pd-ride-info">
                   <div className="pd-route">{r.from} ↭ {r.to}</div>
@@ -113,10 +113,10 @@ export default function PassengerDashboard() {
 
                 <div className="pd-right">
                   <div className="pd-seats">{r.seats} Seats left</div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="pd-actions">
                     <button className="pd-view-btn" onClick={() => bookSeat(r._id)}>Book Seat</button>
                     {r.parcelAllowed && (
-                      <button className="pd-view-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => bookParcel(r._id)}>
+                      <button className="pd-view-btn subtle" onClick={() => bookParcel(r._id)}>
                         Parcel
                       </button>
                     )}

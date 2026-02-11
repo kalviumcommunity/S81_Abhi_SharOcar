@@ -451,6 +451,37 @@
 	}
 }
 
+@media (max-width: 600px) {
+	.rc-profile-main {
+		padding: 120px 16px 36px;
+	}
+
+	.rc-profile-card {
+		padding: 20px;
+	}
+
+	.rc-profile-title {
+		font-size: 28px;
+	}
+
+	.rc-profile-photo-actions {
+		flex-wrap: wrap;
+	}
+
+	.rc-profile-row {
+		grid-template-columns: 1fr;
+	}
+
+	.rc-book-ride-row {
+		flex-wrap: wrap;
+	}
+
+	.rc-book-panel-top {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
 /* My Rides (Bookings list) */
 .rc-my-inner {
 	max-width: 980px;
