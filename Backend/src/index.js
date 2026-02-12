@@ -44,6 +44,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/rides', require('./routes/rides'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/payments', require('./routes/payments'));
 
 // Error handler
 // eslint-disable-next-line no-unused-vars
@@ -56,7 +57,15 @@ const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
+    const server = app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
+    server.on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Stop the other process or change PORT in .env.`);
+        process.exit(1);
+      }
+      console.error('Server error:', err);
+      process.exit(1);
+    });
   })
   .catch((e) => {
     console.error('DB connection failed:', e);

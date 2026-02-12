@@ -100,4 +100,15 @@ export const api = {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ text })
   }),
+
+  createRazorpayOrder: (token, payload) => request('/api/payments/razorpay/order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  }),
+  confirmRazorpayBooking: (token, payload) => request('/api/bookings/razorpay/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  }),
 }

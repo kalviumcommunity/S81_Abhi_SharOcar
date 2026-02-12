@@ -15,7 +15,9 @@ const BookingSchema = new mongoose.Schema(
       }
     ],
     parcelDetails: { type: String },
-    paymentMethod: { type: String, enum: ['UPI', 'Card', 'Cash', 'BillDesk'], required: true },
+    paymentMethod: { type: String, enum: ['UPI', 'Card', 'Cash', 'BillDesk', 'Razorpay'], required: true },
+    razorpayOrderId: { type: String },
+    razorpayPaymentId: { type: String },
     status: { type: String, enum: ['pending', 'confirmed', 'rejected', 'cancelled'], default: 'pending' }
   },
   { timestamps: true }

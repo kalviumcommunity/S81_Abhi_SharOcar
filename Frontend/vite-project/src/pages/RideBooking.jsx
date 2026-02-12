@@ -30,6 +30,15 @@ export default function RideBooking(){
   const [paymentMethod, setPaymentMethod] = useState('BillDesk')
   const [submitting, setSubmitting] = useState(false)
 
+  const loadRazorpay = () => new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true)
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+
   const seatsOptions = useMemo(() => {
     const max = Math.max(1, Math.min(6, Number(ride?.seats || 6)))
     return Array.from({ length: max }, (_, i) => i + 1)
@@ -166,6 +175,62 @@ export default function RideBooking(){
     setError('')
     setSubmitting(true)
     try {
+      if (paymentMethod === 'Razorpay') {
+        const ok = await loadRazorpay()
+        if (!ok) {
+          setError('Failed to load Razorpay')
+          return
+        }
+
+        const order = await api.createRazorpayOrder(token, {
+          rideId: id,
+          type: 'seat',
+          seatsCount,
+        })
+
+        const options = {
+          key: order.keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'ShareOcar',
+          description: 'Ride booking',
+          order_id: order.orderId,
+          prefill: {
+            name: user?.name || '',
+            email: user?.email || '',
+          },
+          handler: async (response) => {
+            try {
+              const payload = {
+                rideId: id,
+                type: 'seat',
+                seatsCount,
+                passengers: passengers.map((p) => ({
+                  name: p.name,
+                  phone: `${p.phoneCountry}${p.phoneNumber}`,
+                  age: Number(p.age),
+                  luggageCount: Number(p.luggageCount || 0),
+                })),
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }
+              await api.confirmRazorpayBooking(token, payload)
+              nav('/my-rides')
+            } catch (e) {
+              setError(e.message || 'Payment confirmation failed')
+            }
+          },
+        }
+
+        const rz = new window.Razorpay(options)
+        rz.on('payment.failed', (resp) => {
+          setError(resp?.error?.description || 'Payment failed')
+        })
+        rz.open()
+        return
+      }
+
       const payload = {
         rideId: id,
         type: 'seat',
@@ -344,6 +409,17 @@ export default function RideBooking(){
                     onChange={() => setPaymentMethod('BillDesk')}
                   />
                   <div>BillDesk</div>
+                </label>
+
+                <label className="rc-row" style={{ gap: 10, marginBottom: 10 }}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="Razorpay"
+                    checked={paymentMethod === 'Razorpay'}
+                    onChange={() => setPaymentMethod('Razorpay')}
+                  />
+                  <div>Razorpay</div>
                 </label>
 
                 <div className="rc-row" style={{ gap: 10, marginTop: 14 }}>

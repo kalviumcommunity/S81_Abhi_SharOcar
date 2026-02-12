@@ -16,6 +16,15 @@ export default function ParcelBooking(){
   const [paymentMethod, setPaymentMethod] = useState('BillDesk')
   const [submitting, setSubmitting] = useState(false)
 
+  const loadRazorpay = () => new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true)
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+
   useEffect(() => {
     let alive = true
     ;(async () => {
@@ -49,6 +58,50 @@ export default function ParcelBooking(){
     }
     setSubmitting(true)
     try {
+      if (paymentMethod === 'Razorpay') {
+        const ok = await loadRazorpay()
+        if (!ok) {
+          setError('Failed to load Razorpay')
+          return
+        }
+
+        const order = await api.createRazorpayOrder(token, {
+          rideId: id,
+          type: 'parcel',
+        })
+
+        const options = {
+          key: order.keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'ShareOcar',
+          description: 'Parcel booking',
+          order_id: order.orderId,
+          handler: async (response) => {
+            try {
+              await api.confirmRazorpayBooking(token, {
+                rideId: id,
+                type: 'parcel',
+                parcelDetails,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              })
+              nav('/my-rides')
+            } catch (e) {
+              setError(e.message || 'Payment confirmation failed')
+            }
+          },
+        }
+
+        const rz = new window.Razorpay(options)
+        rz.on('payment.failed', (resp) => {
+          setError(resp?.error?.description || 'Payment failed')
+        })
+        rz.open()
+        return
+      }
+
       await api.book(token, {
         rideId: id,
         type: 'parcel',
@@ -101,6 +154,7 @@ export default function ParcelBooking(){
                   <option value="UPI">UPI</option>
                   <option value="Card">Card</option>
                   <option value="Cash">Cash</option>
+                  <option value="Razorpay">Razorpay</option>
                 </select>
               </div>
 

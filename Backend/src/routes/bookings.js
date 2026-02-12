@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const Message = require('../models/Message');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -77,6 +78,115 @@ router.post('/', auth('passenger'), async (req, res, next) => {
         booking: booking._id,
         sender: req.user._id,
         text: requestedType === 'parcel' ? 'Parcel booking created.' : 'Seat booking created.'
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    res.status(201).json(booking);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Confirm booking after Razorpay payment (passenger)
+router.post('/razorpay/confirm', auth('passenger'), async (req, res, next) => {
+  try {
+    const {
+      rideId,
+      type,
+      seatsCount,
+      passengers,
+      parcelDetails,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    } = req.body || {};
+
+    if (!rideId) return res.status(400).json({ message: 'rideId is required' });
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({ message: 'Payment verification data is required' });
+    }
+
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) return res.status(500).json({ message: 'Razorpay keys not configured' });
+
+    const expected = crypto
+      .createHmac('sha256', secret)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest('hex');
+    if (expected !== razorpaySignature) {
+      return res.status(400).json({ message: 'Invalid payment signature' });
+    }
+
+    const requestedType = type || 'seat';
+    if (!['seat', 'parcel'].includes(requestedType)) {
+      return res.status(400).json({ message: 'Invalid booking type' });
+    }
+
+    const ride = await Ride.findById(rideId);
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const effectiveRideType = ride.rideType || 'seat';
+    if (effectiveRideType === 'seat' && requestedType !== 'seat') {
+      return res.status(400).json({ message: 'This post is passengers-only' });
+    }
+    if (effectiveRideType === 'parcel' && requestedType !== 'parcel') {
+      return res.status(400).json({ message: 'This post is parcel-only' });
+    }
+
+    if (requestedType === 'seat') {
+      if (!seatsCount || seatsCount < 1) return res.status(400).json({ message: 'Invalid seatsCount' });
+      if (!Array.isArray(passengers) || passengers.length !== seatsCount) {
+        return res.status(400).json({ message: 'Passengers must be provided for each seat' });
+      }
+      for (const p of passengers) {
+        if (!p?.name || !p?.phone || p?.age === undefined || p?.age === null) {
+          return res.status(400).json({ message: 'Each passenger must include name, phone, and age' });
+        }
+      }
+      if (ride.seats < seatsCount) return res.status(400).json({ message: 'Not enough seats' });
+      ride.seats -= seatsCount;
+      await ride.save();
+    }
+
+    if (requestedType === 'parcel' && !ride.parcelAllowed) {
+      return res.status(400).json({ message: 'Parcel not allowed on this ride' });
+    }
+
+    const booking = await Booking.create({
+      ride: ride._id,
+      user: req.user._id,
+      type: requestedType,
+      seatsCount: requestedType === 'seat' ? seatsCount : undefined,
+      passengers: requestedType === 'seat' ? passengers : undefined,
+      parcelDetails: requestedType === 'parcel' ? parcelDetails : undefined,
+      paymentMethod: 'Razorpay',
+      razorpayOrderId,
+      razorpayPaymentId,
+      status: 'pending',
+    });
+
+    // Driver notification (best-effort)
+    try {
+      await Notification.create({
+        user: ride.driver,
+        type: 'booking',
+        title: 'New booking',
+        message: `${req.user.name} booked your post (${ride.from} → ${ride.to})`,
+        booking: booking._id,
+        ride: ride._id,
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    // Seed a chat thread (optional)
+    try {
+      await Message.create({
+        booking: booking._id,
+        sender: req.user._id,
+        text: requestedType === 'parcel' ? 'Parcel booking created.' : 'Seat booking created.',
       });
     } catch (e) {
       // ignore
