@@ -40,6 +40,12 @@ export const api = {
     return request(`/api/rides?${p}`)
   },
   getRide: (rideId) => request(`/api/rides/${rideId}`),
+  getRideReviews: (rideId) => request(`/api/rides/${rideId}/reviews`),
+  upsertRideReview: (token, rideId, payload) => request(`/api/rides/${rideId}/reviews`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  }),
   createRide: (token, payload) => request('/api/rides', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -72,5 +78,26 @@ export const api = {
   cancelBooking: (token, bookingId) => request(`/api/bookings/${bookingId}/cancel`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` }
+  }),
+
+  getNotifications: (token) => request('/api/notifications', {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+  markNotificationRead: (token, notificationId) => request(`/api/notifications/${notificationId}/read`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+  markAllNotificationsRead: (token) => request('/api/notifications/read-all', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+
+  getBookingMessages: (token, bookingId) => request(`/api/bookings/${bookingId}/messages`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+  sendBookingMessage: (token, bookingId, text) => request(`/api/bookings/${bookingId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ text })
   }),
 }

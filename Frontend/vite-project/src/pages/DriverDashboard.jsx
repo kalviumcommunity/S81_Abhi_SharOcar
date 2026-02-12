@@ -11,8 +11,12 @@ export default function DriverDashboard() {
   const [to, setTo] = useState('')
   const [datePreset, setDatePreset] = useState('')
   const [dateValue, setDateValue] = useState('')
+  const [rideType, setRideType] = useState('seat')
   const [seats, setSeats] = useState(1)
   const [price, setPrice] = useState(200)
+  const [parcelWeightKg, setParcelWeightKg] = useState('')
+  const [pickupTime, setPickupTime] = useState('')
+  const [dropTime, setDropTime] = useState('')
 
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -25,6 +29,13 @@ export default function DriverDashboard() {
 
   const [actionMsg, setActionMsg] = useState('')
   const [actionErr, setActionErr] = useState('')
+
+  const [chatOpenId, setChatOpenId] = useState('')
+  const [chatLoadingId, setChatLoadingId] = useState('')
+  const [chatErr, setChatErr] = useState('')
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatText, setChatText] = useState('')
+  const [chatSending, setChatSending] = useState(false)
 
   const pendingBookings = useMemo(
     () => bookings.filter((b) => b?.status === 'pending'),
@@ -111,9 +122,14 @@ export default function DriverDashboard() {
         from,
         to,
         date: rideDate,
-        seats,
+        rideType,
+        seats: rideType === 'parcel' ? 0 : seats,
         price: Number(price),
-        parcelAllowed: true,
+        pickupTime: pickupTime || undefined,
+        dropTime: dropTime || undefined,
+        ...(rideType === 'parcel' && parcelWeightKg !== ''
+          ? { parcelWeightKg: Number(parcelWeightKg) }
+          : {}),
       }
       const r = await api.createRide(token, payload)
       setMsg(`Ride posted • ${r._id}`)
@@ -132,8 +148,12 @@ export default function DriverDashboard() {
       setTo('')
       setDatePreset('')
       setDateValue('')
+      setRideType('seat')
       setSeats(1)
       setPrice(200)
+      setParcelWeightKg('')
+      setPickupTime('')
+      setDropTime('')
 
       loadBookings()
       loadUpcomingRides()
@@ -163,6 +183,46 @@ export default function DriverDashboard() {
       loadBookings()
     } catch (e) {
       setActionErr(e.message || 'Reject failed')
+    }
+  }
+
+  const toggleChat = async (bookingId) => {
+    setChatErr('')
+    if (!bookingId) return
+    if (chatOpenId === bookingId) {
+      setChatOpenId('')
+      setChatMessages([])
+      setChatText('')
+      return
+    }
+    setChatOpenId(bookingId)
+    setChatMessages([])
+    setChatText('')
+    setChatLoadingId(bookingId)
+    try {
+      const res = await api.getBookingMessages(token, bookingId)
+      setChatMessages(Array.isArray(res?.messages) ? res.messages : [])
+    } catch (e) {
+      setChatErr(e.message || 'Failed to load messages')
+    } finally {
+      setChatLoadingId('')
+    }
+  }
+
+  const sendChat = async (bookingId) => {
+    if (!bookingId) return
+    setChatErr('')
+    const text = chatText.trim()
+    if (!text) return
+    setChatSending(true)
+    try {
+      const created = await api.sendBookingMessage(token, bookingId, text)
+      setChatMessages((prev) => [...(Array.isArray(prev) ? prev : []), created])
+      setChatText('')
+    } catch (e) {
+      setChatErr(e.message || 'Send failed')
+    } finally {
+      setChatSending(false)
     }
   }
 
@@ -203,13 +263,53 @@ export default function DriverDashboard() {
               }}
             />
 
-            <select value={seats} onChange={(e) => setSeats(Number(e.target.value))}>
-              {[1, 2, 3, 4, 5, 6].map((n) => (
-                <option key={n} value={n}>
-                  {n} Seat{n > 1 ? 's' : ''}
-                </option>
-              ))}
+            <input
+              type="time"
+              value={pickupTime}
+              onChange={(e) => setPickupTime(e.target.value)}
+              aria-label="Pickup time"
+            />
+
+            <input
+              type="time"
+              value={dropTime}
+              onChange={(e) => setDropTime(e.target.value)}
+              aria-label="Drop time"
+            />
+          </div>
+
+          <div className="rc-search-row rc-search-row-3">
+            <select
+              value={rideType}
+              onChange={(e) => {
+                const v = e.target.value
+                setRideType(v)
+                if (v === 'seat' && Number(seats) < 1) setSeats(1)
+                if (v === 'seat') setParcelWeightKg('')
+              }}
+            >
+              <option value="seat">Passengers</option>
+              <option value="parcel">Parcel</option>
             </select>
+
+            {rideType === 'seat' ? (
+              <select value={seats} onChange={(e) => setSeats(Number(e.target.value))}>
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <option key={n} value={n}>
+                    {n} Seat{n > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="Parcel weight (kg)"
+                value={parcelWeightKg}
+                onChange={(e) => setParcelWeightKg(e.target.value)}
+              />
+            )}
 
             <input
               type="number"
@@ -219,7 +319,9 @@ export default function DriverDashboard() {
               value={price}
               onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
             />
+          </div>
 
+          <div className="rc-search-row rc-search-row-4">
             <motion.button
               whileTap={{ scale: 0.98 }}
               whileHover={{ scale: 1.02 }}
@@ -251,8 +353,7 @@ export default function DriverDashboard() {
                         {r?.from} → {r?.to}
                       </div>
                       <div className="rc-note">
-                        {r?.date ? new Date(r.date).toLocaleDateString() : '—'} • {r?.seats || 1} seat(s) • ₹{r?.price ?? 0}
-                        {r?.parcelAllowed ? ' • Parcel allowed' : ''}
+                        {r?.date ? new Date(r.date).toLocaleDateString() : '—'} • {r?.rideType === 'parcel' ? 'Parcel only' : `${r?.seats || 1} seat(s)`} • ₹{r?.price ?? 0}
                       </div>
                     </div>
                   </div>
@@ -290,6 +391,9 @@ export default function DriverDashboard() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 10 }}>
+                      <button type="button" className="rc-btn small ghost" onClick={() => toggleChat(b._id)}>
+                        {chatOpenId === b._id ? 'Close chat' : 'Messages'}
+                      </button>
                       <button type="button" className="rc-btn small" onClick={() => approve(b._id)}>
                         Approve
                       </button>
@@ -298,6 +402,45 @@ export default function DriverDashboard() {
                       </button>
                     </div>
                   </div>
+
+                  {chatOpenId === b._id && (
+                    <div style={{ marginTop: 12 }}>
+                      {chatErr && <div className="rc-error">{chatErr}</div>}
+                      {chatLoadingId === b._id ? (
+                        <div className="rc-note">Loading messages…</div>
+                      ) : (
+                        <div style={{ display: 'grid', gap: 8 }}>
+                          {chatMessages.length === 0 ? (
+                            <div className="rc-note">No messages yet.</div>
+                          ) : (
+                            <div style={{ display: 'grid', gap: 6 }}>
+                              {chatMessages.map((m) => (
+                                <div key={m._id} className="rc-note">
+                                  <span style={{ fontWeight: 800 }}>{m?.sender?.name || 'User'}:</span> {m?.text}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                            <input
+                              value={chatText}
+                              onChange={(e) => setChatText(e.target.value)}
+                              placeholder="Type a message"
+                            />
+                            <button
+                              type="button"
+                              className="rc-btn small"
+                              onClick={() => sendChat(b._id)}
+                              disabled={chatSending}
+                            >
+                              {chatSending ? 'Sending…' : 'Send'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

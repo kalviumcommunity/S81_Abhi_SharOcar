@@ -43,6 +43,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/rides', require('./routes/rides'));
 app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Error handler
 // eslint-disable-next-line no-unused-vars

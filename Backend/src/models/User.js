@@ -15,7 +15,7 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
     phone: { type: String },
-    role: { type: String, enum: ['passenger', 'driver'], required: true },
+    role: { type: String, enum: ['passenger', 'driver', 'admin'], required: true },
     avatarPath: { type: String },
     documents: DocumentSchema
   },

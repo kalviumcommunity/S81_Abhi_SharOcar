@@ -14,13 +14,19 @@ export default function RideBooking(){
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const [reviews, setReviews] = useState([])
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewMsg, setReviewMsg] = useState('')
+  const [reviewErr, setReviewErr] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+
   const [step, setStep] = useState(1) // 1: passenger details, 2: payment
   const [seatsCount, setSeatsCount] = useState(1)
   const [passengers, setPassengers] = useState([
     { name: '', phoneCountry: '+91', phoneNumber: '', age: '', luggageCount: 0 },
   ])
   const [paymentMethod, setPaymentMethod] = useState('BillDesk')
-  const [status, setStatus] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const seatsOptions = useMemo(() => {
@@ -35,7 +41,15 @@ export default function RideBooking(){
         setLoading(true)
         const r = await api.getRide(id)
         if (!alive) return
+        if ((r?.rideType || 'seat') === 'parcel') {
+          nav(`/parcel/${id}`, { replace: true })
+          return
+        }
         setRide(r)
+
+        const rev = await api.getRideReviews(id)
+        if (!alive) return
+        setReviews(Array.isArray(rev) ? rev : [])
       } catch (e) {
         if (!alive) return
         setError(e.message || 'Failed to load ride')
@@ -47,6 +61,45 @@ export default function RideBooking(){
       alive = false
     }
   }, [id])
+
+  const avatarUrl = (() => {
+    if (!ride?.driver?.avatarPath) return ''
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+    return `${base}${ride.driver.avatarPath}`
+  })()
+
+  const avgRating = useMemo(() => {
+    if (!Array.isArray(reviews) || reviews.length === 0) return 0
+    const sum = reviews.reduce((acc, r) => acc + (Number(r?.rating) || 0), 0)
+    return Math.round((sum / reviews.length) * 10) / 10
+  }, [reviews])
+
+  const submitReview = async () => {
+    setReviewMsg('')
+    setReviewErr('')
+    if (!token || user?.role !== 'passenger') {
+      setReviewErr('Only passengers can review rides')
+      return
+    }
+    setReviewSubmitting(true)
+    try {
+      const created = await api.upsertRideReview(token, id, {
+        rating: Number(reviewRating),
+        comment: reviewComment,
+      })
+      setReviewMsg('Review submitted')
+      setReviewComment('')
+      // refresh list (simple + reliable)
+      const rev = await api.getRideReviews(id)
+      setReviews(Array.isArray(rev) ? rev : [])
+      // keep rating as-is
+      return created
+    } catch (e) {
+      setReviewErr(e.message || 'Review failed')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
 
   useEffect(() => {
     setPassengers((prev) => {
@@ -65,7 +118,6 @@ export default function RideBooking(){
 
   const goPayment = () => {
     setError('')
-    setStatus('')
     for (let i = 0; i < passengers.length; i++) {
       const p = passengers[i]
       if (!p.name?.trim() || !p.phoneNumber?.trim() || p.age === '') {
@@ -78,7 +130,6 @@ export default function RideBooking(){
 
   const submitBooking = async () => {
     setError('')
-    setStatus('')
     setSubmitting(true)
     try {
       const payload = {
@@ -93,8 +144,7 @@ export default function RideBooking(){
           luggageCount: Number(p.luggageCount || 0),
         })),
       }
-      const res = await api.book(token, payload)
-      setStatus(`Request sent (pending approval) • ${res._id}`)
+      await api.book(token, payload)
       nav('/my-rides')
     } catch (e) {
       setError(e.message || 'Booking failed')
@@ -112,7 +162,6 @@ export default function RideBooking(){
 
         {loading && <div className="rc-note">Loading ride…</div>}
         {error && <div className="rc-error">{error}</div>}
-        {status && <div className="rc-success">{status}</div>}
 
         {!loading && ride && (
           <>
@@ -138,8 +187,27 @@ export default function RideBooking(){
                 <div>
                   <div className="rc-book-route">{ride.from} <span aria-hidden="true">→</span> {ride.to}</div>
                   <div className="rc-note">
-                    {new Date(ride.date).toLocaleString()} • Seats left: {ride.seats}
+                    {new Date(ride.date).toLocaleString()} • Seats left: {ride.seats} • Price/seat: ₹{ride.price ?? 0}
                   </div>
+                  <div className="rc-note">
+                    {ride?.pickupTime ? `Pickup: ${ride.pickupTime}` : 'Pickup: —'}
+                    {' • '}
+                    {ride?.dropTime ? `Drop: ${ride.dropTime}` : 'Drop: —'}
+                    {ride?.carModel ? ` • Car: ${ride.carModel}` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rc-book-panel" style={{ marginTop: 14 }}>
+              <div className="rc-book-panel-title" style={{ marginBottom: 10 }}>Driver</div>
+              <div className="rc-row" style={{ gap: 12, alignItems: 'center' }}>
+                <div className="rc-nav-avatar" style={{ width: 42, height: 42, fontSize: 14 }} aria-hidden="true">
+                  {avatarUrl ? <img className="rc-nav-avatar-img" src={avatarUrl} alt="" /> : (ride?.driver?.name || 'D').slice(0, 1).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800 }}>{ride?.driver?.name || 'Driver'}</div>
+                  <div className="rc-note">Rating: {avgRating ? `${avgRating} / 5` : '—'} {reviews.length ? `(${reviews.length} review${reviews.length > 1 ? 's' : ''})` : ''}</div>
                 </div>
               </div>
             </div>
@@ -257,6 +325,57 @@ export default function RideBooking(){
                 </div>
               </div>
             )}
+
+            <div className="rc-book-panel" style={{ marginTop: 14 }}>
+              <div className="rc-book-panel-title" style={{ marginBottom: 10 }}>Reviews</div>
+
+              {reviewErr && <div className="rc-error">{reviewErr}</div>}
+              {reviewMsg && <div className="rc-success">{reviewMsg}</div>}
+
+              {token && user?.role === 'passenger' && (
+                <div style={{ marginBottom: 14 }}>
+                  <div className="rc-row" style={{ gap: 10, alignItems: 'center', marginBottom: 10 }}>
+                    <div className="rc-note">Your rating</div>
+                    <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))}>
+                      {[5, 4, 3, 2, 1].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Write a short review (optional)"
+                    rows={3}
+                    style={{ width: '100%', resize: 'vertical' }}
+                  />
+                  <div style={{ marginTop: 10 }}>
+                    <button type="button" className="rc-btn small" onClick={submitReview} disabled={reviewSubmitting}>
+                      {reviewSubmitting ? 'Submitting…' : 'Submit review'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {reviews.length === 0 ? (
+                <div className="rc-note">No reviews yet.</div>
+              ) : (
+                <div className="rc-list">
+                  {reviews.map((rv) => (
+                    <div key={rv._id} className="rc-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ fontWeight: 800 }}>{rv?.user?.name || 'User'}</div>
+                        <div style={{ fontWeight: 800 }}>{Number(rv?.rating) || 0} / 5</div>
+                      </div>
+                      {rv?.comment ? <div style={{ marginTop: 8, opacity: 0.9 }}>{rv.comment}</div> : null}
+                      <div className="rc-note" style={{ marginTop: 8 }}>
+                        {rv?.createdAt ? new Date(rv.createdAt).toLocaleDateString() : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>

@@ -10,8 +10,9 @@ function auth(requiredRole = null) {
       const payload = jwt.verify(token, process.env.JWT_SECRET || 'devsecret');
       const user = await User.findById(payload.id).select('-password');
       if (!user) return res.status(401).json({ message: 'Invalid token user' });
-      if (requiredRole && user.role !== requiredRole) {
-        return res.status(403).json({ message: 'Forbidden' });
+      if (requiredRole) {
+        const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+        if (!allowed.includes(user.role)) return res.status(403).json({ message: 'Forbidden' });
       }
       req.user = user;
       next();

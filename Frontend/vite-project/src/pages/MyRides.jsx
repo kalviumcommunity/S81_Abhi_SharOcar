@@ -18,6 +18,13 @@ export default function MyRides() {
   const [cancelingId, setCancelingId] = useState('')
   const [rides, setRides] = useState([])
 
+  const [chatOpenId, setChatOpenId] = useState('')
+  const [chatLoadingId, setChatLoadingId] = useState('')
+  const [chatErr, setChatErr] = useState('')
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatText, setChatText] = useState('')
+  const [chatSending, setChatSending] = useState(false)
+
   const [editingId, setEditingId] = useState('')
   const [savingId, setSavingId] = useState('')
   const [deletingId, setDeletingId] = useState('')
@@ -25,9 +32,12 @@ export default function MyRides() {
     from: '',
     to: '',
     date: '',
+    rideType: 'seat',
+    carModel: '',
+    pickupTime: '',
+    dropTime: '',
     seats: 1,
     price: 0,
-    parcelAllowed: true,
   })
 
   const mode = user?.role === 'driver' ? 'driver' : 'passenger'
@@ -88,9 +98,12 @@ export default function MyRides() {
       from: r?.from || '',
       to: r?.to || '',
       date: toYmd(r?.date),
+      rideType: r?.rideType || 'seat',
+      carModel: r?.carModel || '',
+      pickupTime: r?.pickupTime || '',
+      dropTime: r?.dropTime || '',
       seats: Number.isFinite(Number(r?.seats)) ? Number(r.seats) : 1,
       price: Number.isFinite(Number(r?.price)) ? Number(r.price) : 0,
-      parcelAllowed: Boolean(r?.parcelAllowed),
     })
   }
 
@@ -108,9 +121,12 @@ export default function MyRides() {
         from: editForm.from,
         to: editForm.to,
         date: editForm.date,
-        seats: Number(editForm.seats),
+        rideType: editForm.rideType,
+        carModel: editForm.carModel,
+        pickupTime: editForm.pickupTime,
+        dropTime: editForm.dropTime,
+        seats: editForm.rideType === 'parcel' ? 0 : Number(editForm.seats),
         price: Number(editForm.price),
-        parcelAllowed: Boolean(editForm.parcelAllowed),
       }
       const updated = await api.updateRide(token, rideId, payload)
       setRides((prev) => prev.map((x) => (x._id === rideId ? updated : x)))
@@ -119,6 +135,46 @@ export default function MyRides() {
       setError(e.message || 'Update failed')
     } finally {
       setSavingId('')
+    }
+  }
+
+  const toggleChat = async (bookingId) => {
+    setChatErr('')
+    if (!bookingId) return
+    if (chatOpenId === bookingId) {
+      setChatOpenId('')
+      setChatMessages([])
+      setChatText('')
+      return
+    }
+    setChatOpenId(bookingId)
+    setChatMessages([])
+    setChatText('')
+    setChatLoadingId(bookingId)
+    try {
+      const res = await api.getBookingMessages(token, bookingId)
+      setChatMessages(Array.isArray(res?.messages) ? res.messages : [])
+    } catch (e) {
+      setChatErr(e.message || 'Failed to load messages')
+    } finally {
+      setChatLoadingId('')
+    }
+  }
+
+  const sendChat = async (bookingId) => {
+    if (!bookingId) return
+    setChatErr('')
+    const text = chatText.trim()
+    if (!text) return
+    setChatSending(true)
+    try {
+      const created = await api.sendBookingMessage(token, bookingId, text)
+      setChatMessages((prev) => [...(Array.isArray(prev) ? prev : []), created])
+      setChatText('')
+    } catch (e) {
+      setChatErr(e.message || 'Send failed')
+    } finally {
+      setChatSending(false)
     }
   }
 
@@ -178,6 +234,38 @@ export default function MyRides() {
                               value={editForm.date}
                               onChange={(e) => setEditForm((p) => ({ ...p, date: e.target.value }))}
                             />
+
+                            <select
+                              value={editForm.rideType}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                setEditForm((p) => ({
+                                  ...p,
+                                  rideType: v,
+                                  seats: v === 'seat' && Number(p.seats) < 1 ? 1 : p.seats,
+                                }))
+                              }}
+                            >
+                              <option value="seat">Passengers only</option>
+                              <option value="parcel">Parcel only</option>
+                            </select>
+                            <input
+                              value={editForm.carModel}
+                              onChange={(e) => setEditForm((p) => ({ ...p, carModel: e.target.value }))}
+                              placeholder="Car model"
+                            />
+                            <input
+                              type="time"
+                              value={editForm.pickupTime}
+                              onChange={(e) => setEditForm((p) => ({ ...p, pickupTime: e.target.value }))}
+                              placeholder="Pickup time"
+                            />
+                            <input
+                              type="time"
+                              value={editForm.dropTime}
+                              onChange={(e) => setEditForm((p) => ({ ...p, dropTime: e.target.value }))}
+                              placeholder="Drop time"
+                            />
                             <input
                               type="number"
                               min="0"
@@ -185,6 +273,7 @@ export default function MyRides() {
                               value={editForm.seats}
                               onChange={(e) => setEditForm((p) => ({ ...p, seats: e.target.value }))}
                               placeholder="Seats"
+                              disabled={editForm.rideType === 'parcel'}
                             />
                             <input
                               type="number"
@@ -194,14 +283,9 @@ export default function MyRides() {
                               onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))}
                               placeholder="Price"
                             />
-                            <label className="rc-note" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <input
-                                type="checkbox"
-                                checked={editForm.parcelAllowed}
-                                onChange={(e) => setEditForm((p) => ({ ...p, parcelAllowed: e.target.checked }))}
-                              />
-                              Parcel allowed
-                            </label>
+                            <div className="rc-note" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              {editForm.rideType === 'parcel' ? 'Parcel only post' : 'Passengers only post'}
+                            </div>
                           </div>
 
                           <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
@@ -230,8 +314,10 @@ export default function MyRides() {
                               {r?.from} → {r?.to}
                             </div>
                             <div className="rc-note">
-                              {r?.date ? new Date(r.date).toLocaleDateString() : '—'} • {r?.seats || 1} seat(s) • ₹{r?.price ?? 0}
-                              {r?.parcelAllowed ? ' • Parcel allowed' : ''}
+                              {r?.date ? new Date(r.date).toLocaleDateString() : '—'} • {(r?.rideType || 'seat') === 'parcel' ? 'Parcel only' : `${r?.seats || 1} seat(s)`} • ₹{r?.price ?? 0}
+                              {r?.pickupTime ? ` • Pickup: ${r.pickupTime}` : ''}
+                              {r?.dropTime ? ` • Drop: ${r.dropTime}` : ''}
+                              {r?.carModel ? ` • Car: ${r.carModel}` : ''}
                             </div>
                           </div>
 
@@ -294,6 +380,15 @@ export default function MyRides() {
                         </div>
 
                         <div className="rc-my-actions">
+                            <button
+                              type="button"
+                              className="rc-btn ghost small"
+                              onClick={() => toggleChat(b._id)}
+                              disabled={!token}
+                            >
+                              {chatOpenId === b._id ? 'Close chat' : 'Message driver'}
+                            </button>
+
                           {['pending', 'confirmed'].includes(b.status) && (
                             <button
                               type="button"
@@ -328,6 +423,45 @@ export default function MyRides() {
                       {b.type === 'parcel' && b.parcelDetails && (
                         <div className="rc-my-sub">
                           <div className="rc-note">Parcel: {b.parcelDetails}</div>
+                        </div>
+                      )}
+
+                      {chatOpenId === b._id && (
+                        <div className="rc-my-sub">
+                          {chatErr && <div className="rc-error">{chatErr}</div>}
+                          {chatLoadingId === b._id ? (
+                            <div className="rc-note">Loading messages…</div>
+                          ) : (
+                            <div style={{ display: 'grid', gap: 8 }}>
+                              {chatMessages.length === 0 ? (
+                                <div className="rc-note">No messages yet.</div>
+                              ) : (
+                                <div style={{ display: 'grid', gap: 6 }}>
+                                  {chatMessages.map((m) => (
+                                    <div key={m._id} className="rc-note">
+                                      <span style={{ fontWeight: 800 }}>{m?.sender?.name || 'User'}:</span> {m?.text}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                                <input
+                                  value={chatText}
+                                  onChange={(e) => setChatText(e.target.value)}
+                                  placeholder="Type a message"
+                                />
+                                <button
+                                  type="button"
+                                  className="rc-btn small"
+                                  onClick={() => sendChat(b._id)}
+                                  disabled={chatSending}
+                                >
+                                  {chatSending ? 'Sending…' : 'Send'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

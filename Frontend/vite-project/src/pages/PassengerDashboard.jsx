@@ -12,7 +12,6 @@ export default function PassengerDashboard() {
   // Restoration of functional state
   const [query, setQuery] = useState({ from: '', to: '', date: '' })
   const [rides, setRides] = useState([])
-  const [bookResult, setBookResult] = useState('')
 
   const search = async () => {
     try {
@@ -27,13 +26,8 @@ export default function PassengerDashboard() {
     nav(`/ride/${rideId}`)
   }
 
-  const bookParcel = async (rideId) => {
-    try {
-      const res = await api.book(token, { rideId, type: 'parcel', parcelDetails: 'Small package', paymentMethod: 'Card' })
-      setBookResult(`Parcel request sent (pending approval) • ${res._id}`)
-    } catch (error) {
-      setBookResult("Parcel booking failed")
-    }
+  const bookParcel = (rideId) => {
+    nav(`/parcel/${rideId}`)
   }
 
   // Initial search on mount
@@ -86,8 +80,6 @@ export default function PassengerDashboard() {
             <button className="pd-search-btn" onClick={search}>Search</button>
           </div>
 
-          {bookResult && <div className="pd-success">{bookResult}</div>}
-
           <h2 className="pd-section-title">Available Rides</h2>
           <div className="pd-rides-list">
             {rides.length === 0 && <div className="pd-empty">No rides found. Try different search criteria.</div>}
@@ -107,17 +99,20 @@ export default function PassengerDashboard() {
                   <div className="pd-meta">
                     <span>{new Date(r.date).toLocaleString()}</span>
                     <span>•</span>
-                    <span>{r.seats} Seats</span>
+                    <span>{(r?.rideType || 'seat') === 'parcel' ? 'Parcel only' : `${r.seats} Seats`}</span>
                   </div>
                 </div>
 
                 <div className="pd-right">
-                  <div className="pd-seats">{r.seats} Seats left</div>
+                  <div className="pd-seats">
+                    {(r?.rideType || 'seat') === 'parcel' ? 'Parcel post' : `${r.seats} Seats left`}
+                  </div>
                   <div className="pd-actions">
-                    <button className="pd-view-btn" onClick={() => bookSeat(r._id)}>Book Seat</button>
-                    {r.parcelAllowed && (
+                    {(r?.rideType || 'seat') === 'seat' ? (
+                      <button className="pd-view-btn" onClick={() => bookSeat(r._id)}>Book Seat</button>
+                    ) : (
                       <button className="pd-view-btn subtle" onClick={() => bookParcel(r._id)}>
-                        Parcel
+                        Book Parcel
                       </button>
                     )}
                   </div>

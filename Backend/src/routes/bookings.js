@@ -2,6 +2,9 @@ const express = require('express');
 const Booking = require('../models/Booking');
 const Ride = require('../models/Ride');
 const auth = require('../middleware/auth');
+const mongoose = require('mongoose');
+const Notification = require('../models/Notification');
+const Message = require('../models/Message');
 
 const router = express.Router();
 
@@ -12,7 +15,21 @@ router.post('/', auth('passenger'), async (req, res, next) => {
     const ride = await Ride.findById(rideId);
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
-    if (type === 'seat') {
+    const requestedType = type || 'seat';
+    if (!['seat', 'parcel'].includes(requestedType)) {
+      return res.status(400).json({ message: 'Invalid booking type' });
+    }
+
+    const effectiveRideType = ride.rideType || 'seat';
+
+    if (effectiveRideType === 'seat' && requestedType !== 'seat') {
+      return res.status(400).json({ message: 'This post is passengers-only' });
+    }
+    if (effectiveRideType === 'parcel' && requestedType !== 'parcel') {
+      return res.status(400).json({ message: 'This post is parcel-only' });
+    }
+
+    if (requestedType === 'seat') {
       if (!seatsCount || seatsCount < 1) return res.status(400).json({ message: 'Invalid seatsCount' });
       if (!Array.isArray(passengers) || passengers.length !== seatsCount) {
         return res.status(400).json({ message: 'Passengers must be provided for each seat' });
@@ -27,19 +44,106 @@ router.post('/', auth('passenger'), async (req, res, next) => {
       await ride.save();
     }
 
-    if (type === 'parcel' && !ride.parcelAllowed) return res.status(400).json({ message: 'Parcel not allowed on this ride' });
+    if (requestedType === 'parcel' && !ride.parcelAllowed) return res.status(400).json({ message: 'Parcel not allowed on this ride' });
 
     const booking = await Booking.create({
       ride: ride._id,
       user: req.user._id,
-      type,
-      seatsCount: type === 'seat' ? seatsCount : undefined,
-      passengers: type === 'seat' ? passengers : undefined,
-      parcelDetails: type === 'parcel' ? parcelDetails : undefined,
+      type: requestedType,
+      seatsCount: requestedType === 'seat' ? seatsCount : undefined,
+      passengers: requestedType === 'seat' ? passengers : undefined,
+      parcelDetails: requestedType === 'parcel' ? parcelDetails : undefined,
       paymentMethod,
       status: 'pending'
     });
+
+    // Create a notification for the driver (best-effort)
+    try {
+      await Notification.create({
+        user: ride.driver,
+        type: 'booking',
+        title: 'New booking',
+        message: `${req.user.name} booked your post (${ride.from} → ${ride.to})`,
+        booking: booking._id,
+        ride: ride._id
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    // Seed a chat thread (optional but helps UX)
+    try {
+      await Message.create({
+        booking: booking._id,
+        sender: req.user._id,
+        text: requestedType === 'parcel' ? 'Parcel booking created.' : 'Seat booking created.'
+      });
+    } catch (e) {
+      // ignore
+    }
+
     res.status(201).json(booking);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Get messages for a booking (only passenger or ride driver)
+router.get('/:id/messages', auth(), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(404).json({ message: 'Booking not found' });
+
+    const booking = await Booking.findById(id).populate({
+      path: 'ride',
+      select: 'driver from to',
+      populate: { path: 'driver', select: 'name role' }
+    });
+
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (!booking.ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const userId = String(req.user._id);
+    const isPassenger = String(booking.user) === userId;
+    const isDriver = String(booking.ride.driver?._id || booking.ride.driver) === userId;
+    if (!isPassenger && !isDriver) return res.status(403).json({ message: 'Forbidden' });
+
+    const messages = await Message.find({ booking: booking._id })
+      .sort({ createdAt: 1 })
+      .populate('sender', 'name role');
+
+    res.json({ booking, messages });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Send message for a booking (only passenger or ride driver)
+router.post('/:id/messages', auth(), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(404).json({ message: 'Booking not found' });
+
+    const text = String(req.body?.text || '').trim();
+    if (!text) return res.status(400).json({ message: 'Message text is required' });
+    if (text.length > 1000) return res.status(400).json({ message: 'Message too long' });
+
+    const booking = await Booking.findById(id).populate({
+      path: 'ride',
+      select: 'driver',
+      populate: { path: 'driver', select: 'name role' }
+    });
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (!booking.ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const userId = String(req.user._id);
+    const isPassenger = String(booking.user) === userId;
+    const isDriver = String(booking.ride.driver?._id || booking.ride.driver) === userId;
+    if (!isPassenger && !isDriver) return res.status(403).json({ message: 'Forbidden' });
+
+    const msg = await Message.create({ booking: booking._id, sender: req.user._id, text });
+    const populated = await msg.populate('sender', 'name role');
+    res.status(201).json(populated);
   } catch (e) {
     next(e);
   }

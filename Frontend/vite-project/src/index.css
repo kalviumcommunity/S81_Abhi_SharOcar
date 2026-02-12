@@ -391,6 +391,14 @@ a {
   grid-template-columns: 1.2fr 1.2fr 1.2fr;
 }
 
+.rc-search-row-3 {
+  grid-template-columns: 1.2fr 1.2fr 1.2fr;
+}
+
+.rc-search-row-4 {
+  grid-template-columns: 1fr;
+}
+
 .rc-search-panel input,
 .rc-search-panel select {
   background: rgba(255, 255, 255, 0.06);
@@ -561,7 +569,9 @@ a {
   }
 
   .rc-search-row-1,
-  .rc-search-row-2 {
+  .rc-search-row-2,
+  .rc-search-row-3,
+  .rc-search-row-4 {
     grid-template-columns: 1fr;
   }
 

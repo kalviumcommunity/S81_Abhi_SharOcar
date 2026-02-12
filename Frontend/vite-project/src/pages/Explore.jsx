@@ -47,7 +47,11 @@ export default function Explore() {
       })
 
       const filtered = Array.isArray(res)
-        ? res.filter((r) => (typeof r?.seats === 'number' ? r.seats >= seats : true))
+        ? res.filter((r) => {
+            const type = r?.rideType || 'seat'
+            if (type === 'parcel') return true
+            return typeof r?.seats === 'number' ? r.seats >= seats : true
+          })
         : []
       setRides(filtered)
     } catch (e) {
@@ -126,11 +130,12 @@ export default function Explore() {
                     </div>
                     <div style={{ marginTop: 8, opacity: 0.9 }}>
                       {r.date ? new Date(r.date).toLocaleString() : ''}
-                      {typeof r.seats === 'number' ? ` • Seats: ${r.seats}` : ''}
+                      {(r?.rideType || 'seat') === 'seat' && typeof r.seats === 'number' ? ` • Seats: ${r.seats}` : ''}
+                      {(r?.rideType || 'seat') === 'parcel' ? ' • Parcel only' : ''}
                       {r.driver?.name ? ` • Driver: ${r.driver.name}` : ''}
                     </div>
                     <div style={{ marginTop: 12 }}>
-                      <button type="button" className="rc-btn" onClick={() => nav(`/ride/${r._id}`)}>
+                      <button type="button" className="rc-btn" onClick={() => nav((r?.rideType || 'seat') === 'parcel' ? `/parcel/${r._id}` : `/ride/${r._id}`)}>
                         View
                       </button>
                     </div>

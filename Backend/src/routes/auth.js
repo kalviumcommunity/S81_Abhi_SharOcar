@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const upload = require('../middleware/upload');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const path = require('path');
 
 const router = express.Router();
 
@@ -34,10 +35,16 @@ router.post(
         role
       });
 
+      const normalizeUploadPath = (filePath) => {
+        const fileName = path.basename(filePath || '').replace(/\\/g, '/');
+        if (!fileName) return null;
+        return `/uploads/${fileName}`;
+      };
+
       if (role === 'driver') {
         user.documents = {
-          aadhaarPath: req.files?.aadhaar?.[0]?.path || null,
-          licensePath: req.files?.license?.[0]?.path || null,
+          aadhaarPath: normalizeUploadPath(req.files?.aadhaar?.[0]?.path) || null,
+          licensePath: normalizeUploadPath(req.files?.license?.[0]?.path) || null,
           status: 'pending'
         };
       }

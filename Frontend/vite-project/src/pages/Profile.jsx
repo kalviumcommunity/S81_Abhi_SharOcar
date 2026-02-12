@@ -29,6 +29,21 @@ export default function Profile() {
     return `${base}${user.avatarPath}`
   }, [user?.avatarPath])
 
+  const uploadsBase = useMemo(() => {
+    return import.meta.env.VITE_API_URL || 'http://localhost:5001'
+  }, [])
+
+  const normalizeDocPath = (p) => {
+    if (!p) return ''
+    const s = String(p).replace(/\\/g, '/')
+    if (s.startsWith('/uploads/')) return s
+    if (s.startsWith('uploads/')) return `/${s}`
+    return s.startsWith('/') ? s : `/${s}`
+  }
+
+  const aadhaarUrl = user?.documents?.aadhaarPath ? `${uploadsBase}${normalizeDocPath(user.documents.aadhaarPath)}` : ''
+  const licenseUrl = user?.documents?.licensePath ? `${uploadsBase}${normalizeDocPath(user.documents.licensePath)}` : ''
+
   const onPickPhoto = () => {
     setStatus('')
     setError('')
@@ -145,6 +160,25 @@ export default function Profile() {
               <div className="rc-profile-k">Email</div>
               <input value={user?.email || ''} readOnly />
             </label>
+
+            {user?.role === 'driver' && (
+              <div className="rc-profile-field">
+                <div className="rc-profile-k">Documents</div>
+                <div className="rc-note" style={{ marginTop: 6 }}>
+                  Aadhaar: {aadhaarUrl ? (
+                    <a href={aadhaarUrl} target="_blank" rel="noreferrer">View</a>
+                  ) : 'Not uploaded'}
+                </div>
+                <div className="rc-note" style={{ marginTop: 6 }}>
+                  Driving license: {licenseUrl ? (
+                    <a href={licenseUrl} target="_blank" rel="noreferrer">View</a>
+                  ) : 'Not uploaded'}
+                </div>
+                <div className="rc-note" style={{ marginTop: 6 }}>
+                  Status: {user?.documents?.status || 'pending'}
+                </div>
+              </div>
+            )}
           </div>
 
           <button type="button" className="rc-btn" onClick={onSave} disabled={isSaving || !token}>
