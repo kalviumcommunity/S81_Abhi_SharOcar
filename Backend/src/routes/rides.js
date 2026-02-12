@@ -127,6 +127,23 @@ router.post('/:id/reviews', auth('passenger'), async (req, res, next) => {
 
     const booking = await Booking.findOne({ ride: id, user: req.user._id });
     if (!booking) return res.status(403).json({ message: 'You can review only rides you booked' });
+    if (booking.type !== 'seat') return res.status(403).json({ message: 'Only seat rides can be reviewed' });
+    if (booking.status !== 'confirmed') return res.status(403).json({ message: 'You can review only confirmed rides' });
+
+    const ride = await Ride.findById(id).select('date dropTime');
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const now = new Date();
+    const rideDate = new Date(ride.date);
+    let completedAt = new Date(rideDate.getFullYear(), rideDate.getMonth(), rideDate.getDate(), 23, 59, 59, 999);
+    if (ride.dropTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(String(ride.dropTime))) {
+      const [hh, mm] = String(ride.dropTime).split(':').map((x) => Number(x));
+      completedAt = new Date(rideDate.getFullYear(), rideDate.getMonth(), rideDate.getDate(), hh, mm, 0, 0);
+    }
+
+    if (now < completedAt) {
+      return res.status(403).json({ message: 'You can review only after the ride is completed' });
+    }
 
     const review = await Review.findOneAndUpdate(
       { ride: id, user: req.user._id },

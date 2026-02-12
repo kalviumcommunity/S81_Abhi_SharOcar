@@ -20,6 +20,7 @@ export default function RideBooking(){
   const [reviewMsg, setReviewMsg] = useState('')
   const [reviewErr, setReviewErr] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewEligible, setReviewEligible] = useState(false)
 
   const [step, setStep] = useState(1) // 1: passenger details, 2: payment
   const [seatsCount, setSeatsCount] = useState(1)
@@ -50,6 +51,39 @@ export default function RideBooking(){
         const rev = await api.getRideReviews(id)
         if (!alive) return
         setReviews(Array.isArray(rev) ? rev : [])
+
+        // Only show the review form after the ride is completed and user has a confirmed seat booking.
+        if (token && user?.role === 'passenger') {
+          try {
+            const bookings = await api.myBookings(token)
+            if (!alive) return
+            const b = Array.isArray(bookings)
+              ? bookings.find((x) => String(x?.ride?._id || x?.ride) === String(id))
+              : null
+
+            const isConfirmedSeat = b && b.type === 'seat' && b.status === 'confirmed'
+
+            const rideDate = r?.date ? new Date(r.date) : null
+            const now = new Date()
+
+            let completedAt = null
+            if (rideDate && !Number.isNaN(rideDate.getTime())) {
+              completedAt = new Date(rideDate.getFullYear(), rideDate.getMonth(), rideDate.getDate(), 23, 59, 59, 999)
+              if (r?.dropTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(String(r.dropTime))) {
+                const [hh, mm] = String(r.dropTime).split(':').map((v) => Number(v))
+                completedAt = new Date(rideDate.getFullYear(), rideDate.getMonth(), rideDate.getDate(), hh, mm, 0, 0)
+              }
+            }
+
+            const isCompleted = completedAt ? now >= completedAt : false
+            setReviewEligible(Boolean(isConfirmedSeat && isCompleted))
+          } catch {
+            // If we can't determine eligibility, don't ask for review.
+            setReviewEligible(false)
+          }
+        } else {
+          setReviewEligible(false)
+        }
       } catch (e) {
         if (!alive) return
         setError(e.message || 'Failed to load ride')
@@ -60,7 +94,7 @@ export default function RideBooking(){
     return () => {
       alive = false
     }
-  }, [id])
+  }, [id, nav, token, user?.role])
 
   const avatarUrl = (() => {
     if (!ride?.driver?.avatarPath) return ''
@@ -332,7 +366,7 @@ export default function RideBooking(){
               {reviewErr && <div className="rc-error">{reviewErr}</div>}
               {reviewMsg && <div className="rc-success">{reviewMsg}</div>}
 
-              {token && user?.role === 'passenger' && (
+              {token && user?.role === 'passenger' && reviewEligible && (
                 <div style={{ marginBottom: 14 }}>
                   <div className="rc-row" style={{ gap: 10, alignItems: 'center', marginBottom: 10 }}>
                     <div className="rc-note">Your rating</div>
