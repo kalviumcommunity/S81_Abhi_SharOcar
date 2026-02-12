@@ -43,7 +43,7 @@ cd Frontend\vite-project
 npm run dev
 ```
 
-Open http://localhost:5173 and the API is on http://localhost:5001.
+Open http://localhost:5173 and the API is on http://localhost:5002.
 
 Optional: Put your cinematic background at `Frontend/vite-project/public/bg.jpg` (the UI has a gradient fallback).
 

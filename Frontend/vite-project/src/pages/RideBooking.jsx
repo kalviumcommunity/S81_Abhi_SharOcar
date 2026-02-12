@@ -107,7 +107,7 @@ export default function RideBooking(){
 
   const avatarUrl = (() => {
     if (!ride?.driver?.avatarPath) return ''
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5002'
     return `${base}${ride.driver.avatarPath}`
   })()
 

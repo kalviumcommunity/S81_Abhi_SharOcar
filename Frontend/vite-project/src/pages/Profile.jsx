@@ -25,12 +25,12 @@ export default function Profile() {
 
   const avatarUrl = useMemo(() => {
     if (!user?.avatarPath) return ''
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5002'
     return `${base}${user.avatarPath}`
   }, [user?.avatarPath])
 
   const uploadsBase = useMemo(() => {
-    return import.meta.env.VITE_API_URL || 'http://localhost:5001'
+    return import.meta.env.VITE_API_URL || 'http://localhost:5002'
   }, [])
 
   const normalizeDocPath = (p) => {
