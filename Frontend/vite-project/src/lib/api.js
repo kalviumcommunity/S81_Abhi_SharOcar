@@ -45,6 +45,15 @@ export const api = {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload)
   }),
+  updateRide: (token, rideId, payload) => request(`/api/rides/${rideId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  }),
+  deleteRide: (token, rideId) => request(`/api/rides/${rideId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
+  }),
   myRides: (token) => request('/api/rides/mine', { headers: { Authorization: `Bearer ${token}` } }),
   book: (token, payload) => request('/api/bookings', {
     method: 'POST',

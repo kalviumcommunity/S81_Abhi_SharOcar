@@ -5,13 +5,18 @@ const AuthCtx = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    const t = localStorage.getItem('rc_token')
-    const u = localStorage.getItem('rc_user')
-    if (t && u) {
-      setToken(t)
-      setUser(JSON.parse(u))
+    try {
+      const t = localStorage.getItem('rc_token')
+      const u = localStorage.getItem('rc_user')
+      if (t && u) {
+        setToken(t)
+        setUser(JSON.parse(u))
+      }
+    } finally {
+      setIsHydrated(true)
     }
   }, [])
 
@@ -20,6 +25,7 @@ export function AuthProvider({ children }) {
     setUser(u)
     localStorage.setItem('rc_token', t)
     localStorage.setItem('rc_user', JSON.stringify(u))
+    setIsHydrated(true)
   }
 
   const logout = () => {
@@ -27,6 +33,7 @@ export function AuthProvider({ children }) {
     setUser(null)
     localStorage.removeItem('rc_token')
     localStorage.removeItem('rc_user')
+    setIsHydrated(true)
   }
 
   const setUserProfile = (nextUser) => {
@@ -35,7 +42,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthCtx.Provider value={{ user, token, login, logout, setUserProfile }}>
+    <AuthCtx.Provider value={{ user, token, isHydrated, login, logout, setUserProfile }}>
       {children}
     </AuthCtx.Provider>
   )

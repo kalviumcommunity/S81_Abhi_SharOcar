@@ -1,19 +1,61 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { api } from '../lib/api'
+import { useAuth } from '../auth/AuthContext'
 import './pages.css'
 
 export default function Explore() {
   const nav = useNavigate()
+  const { user } = useAuth()
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [date, setDate] = useState('')
   const [date2, setDate2] = useState('')
   const [seats, setSeats] = useState(1)
 
-  const onSearch = (e) => {
+  const [rides, setRides] = useState([])
+  const [searched, setSearched] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [error, setError] = useState('')
+
+  const onSearch = async (e) => {
     e.preventDefault()
-    nav('/login') // redirect to login when unauthenticated per spec
+    if (!user) {
+      nav('/login')
+      return
+    }
+
+    setError('')
+    setIsSearching(true)
+    setSearched(true)
+    try {
+      const today = new Date()
+      const toYmd = (d) => {
+        const yyyy = d.getFullYear()
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${yyyy}-${mm}-${dd}`
+      }
+      const effectiveDate =
+        date2 || (date === 'today' ? toYmd(today) : date === 'tomorrow' ? toYmd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)) : '')
+
+      const res = await api.searchRides({
+        ...(from ? { from } : {}),
+        ...(to ? { to } : {}),
+        ...(effectiveDate ? { date: effectiveDate } : {})
+      })
+
+      const filtered = Array.isArray(res)
+        ? res.filter((r) => (typeof r?.seats === 'number' ? r.seats >= seats : true))
+        : []
+      setRides(filtered)
+    } catch (e) {
+      setError(e.message)
+      setRides([])
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   return (
@@ -57,11 +99,47 @@ export default function Explore() {
               whileHover={{ scale: 1.02 }}
               className="rc-btn rc-search-btn"
               type="submit"
+              disabled={isSearching}
             >
-              Search
+              {isSearching ? 'Searching…' : 'Search'}
             </motion.button>
           </div>
         </form>
+
+        {error && <div className="rc-error" style={{ marginTop: 14 }}>{error}</div>}
+
+        {user && searched && !error && (
+          <div style={{ marginTop: 18 }}>
+            {rides.length === 0 ? (
+              <div className="rc-note">No rides found.</div>
+            ) : (
+              <div className="rc-list">
+                {rides.map((r) => (
+                  <div key={r._id} className="rc-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontWeight: 800, fontSize: 16 }}>
+                        {r.from} → {r.to}
+                      </div>
+                      <div style={{ fontWeight: 800 }}>
+                        ₹{r.price}
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 8, opacity: 0.9 }}>
+                      {r.date ? new Date(r.date).toLocaleString() : ''}
+                      {typeof r.seats === 'number' ? ` • Seats: ${r.seats}` : ''}
+                      {r.driver?.name ? ` • Driver: ${r.driver.name}` : ''}
+                    </div>
+                    <div style={{ marginTop: 12 }}>
+                      <button type="button" className="rc-btn" onClick={() => nav(`/ride/${r._id}`)}>
+                        View
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="rc-safety">🔒 Secure payments via UPI, Cards, and Cash.</div>
       </div>

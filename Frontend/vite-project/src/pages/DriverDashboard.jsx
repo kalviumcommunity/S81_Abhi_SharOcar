@@ -6,14 +6,23 @@ import './pages.css'
 
 export default function DriverDashboard() {
   const { token } = useAuth()
+
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [date, setDate] = useState('')
-  const [date2, setDate2] = useState('')
+  const [datePreset, setDatePreset] = useState('')
+  const [dateValue, setDateValue] = useState('')
   const [seats, setSeats] = useState(1)
+  const [price, setPrice] = useState(200)
+
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
+
   const [bookings, setBookings] = useState([])
+  const [bookingsErr, setBookingsErr] = useState('')
+
+  const [upcomingRides, setUpcomingRides] = useState([])
+  const [upcomingErr, setUpcomingErr] = useState('')
+
   const [actionMsg, setActionMsg] = useState('')
   const [actionErr, setActionErr] = useState('')
 
@@ -22,19 +31,63 @@ export default function DriverDashboard() {
     [bookings]
   )
 
+  const toYmd = (d) => {
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+
+  const startOfToday = () => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  }
+
+  const onPresetDateChange = (value) => {
+    setDatePreset(value)
+    if (value === 'today') {
+      setDateValue(toYmd(new Date()))
+    } else if (value === 'tomorrow') {
+      const d = new Date()
+      d.setDate(d.getDate() + 1)
+      setDateValue(toYmd(d))
+    }
+  }
+
   const loadBookings = async () => {
     if (!token) return
     try {
+      setBookingsErr('')
       const res = await api.myBookings(token)
       setBookings(Array.isArray(res) ? res : [])
     } catch (e) {
-      // Keep silent here; approvals will show specific errors
       setBookings([])
+      setBookingsErr(e.message || 'Failed to load booking requests')
+    }
+  }
+
+  const loadUpcomingRides = async () => {
+    if (!token) return
+    try {
+      setUpcomingErr('')
+      const res = await api.myRides(token)
+      const all = Array.isArray(res) ? res : []
+      const today = startOfToday()
+      const upcoming = all.filter((r) => {
+        const d = r?.date ? new Date(r.date) : null
+        return d && !Number.isNaN(d.getTime()) && d >= today
+      })
+      setUpcomingRides(upcoming)
+    } catch (e) {
+      setUpcomingRides([])
+      setUpcomingErr(e.message || 'Failed to load upcoming rides')
     }
   }
 
   useEffect(() => {
     loadBookings()
+    loadUpcomingRides()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const postRide = async (e) => {
@@ -42,9 +95,14 @@ export default function DriverDashboard() {
     setMsg('')
     setError('')
 
-    const rideDate = date2 || ''
+    const rideDate = dateValue || ''
     if (!from.trim() || !to.trim() || !rideDate) {
       setError('Please fill From, To, and Date')
+      return
+    }
+
+    if (price === '' || !Number.isFinite(Number(price)) || Number(price) < 0) {
+      setError('Please enter a valid price')
       return
     }
 
@@ -54,17 +112,31 @@ export default function DriverDashboard() {
         to,
         date: rideDate,
         seats,
-        price: 200,
+        price: Number(price),
         parcelAllowed: true,
       }
       const r = await api.createRide(token, payload)
       setMsg(`Ride posted • ${r._id}`)
+
+      // update upcoming list if the posted ride is upcoming
+      const d = r?.date ? new Date(r.date) : null
+      if (d && !Number.isNaN(d.getTime()) && d >= startOfToday()) {
+        setUpcomingRides((prev) => {
+          const next = Array.isArray(prev) ? prev : []
+          if (next.some((x) => x?._id === r?._id)) return next
+          return [r, ...next]
+        })
+      }
+
       setFrom('')
       setTo('')
-      setDate('')
-      setDate2('')
+      setDatePreset('')
+      setDateValue('')
       setSeats(1)
+      setPrice(200)
+
       loadBookings()
+      loadUpcomingRides()
     } catch (e2) {
       setError(e2.message || 'Failed to post ride')
     }
@@ -114,7 +186,7 @@ export default function DriverDashboard() {
               value={to}
               onChange={(e) => setTo(e.target.value)}
             />
-            <select value={date} onChange={(e) => setDate(e.target.value)}>
+            <select value={datePreset} onChange={(e) => onPresetDateChange(e.target.value)}>
               <option value="">Date</option>
               <option value="today">Today</option>
               <option value="tomorrow">Tomorrow</option>
@@ -122,7 +194,15 @@ export default function DriverDashboard() {
           </div>
 
           <div className="rc-search-row rc-search-row-2">
-            <input type="date" value={date2} onChange={(e) => setDate2(e.target.value)} />
+            <input
+              type="date"
+              value={dateValue}
+              onChange={(e) => {
+                setDateValue(e.target.value)
+                if (datePreset) setDatePreset('')
+              }}
+            />
+
             <select value={seats} onChange={(e) => setSeats(Number(e.target.value))}>
               {[1, 2, 3, 4, 5, 6].map((n) => (
                 <option key={n} value={n}>
@@ -130,6 +210,16 @@ export default function DriverDashboard() {
                 </option>
               ))}
             </select>
+
+            <input
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Price per seat"
+              value={price}
+              onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+            />
+
             <motion.button
               whileTap={{ scale: 0.98 }}
               whileHover={{ scale: 1.02 }}
@@ -145,7 +235,36 @@ export default function DriverDashboard() {
         {msg && <div className="rc-success">{msg}</div>}
 
         <div className="rc-driver-requests">
+          <h2 className="rc-section-h">Upcoming rides</h2>
+
+          {upcomingErr && <div className="rc-error">{upcomingErr}</div>}
+
+          {upcomingRides.length === 0 ? (
+            <div className="rc-note">No upcoming rides.</div>
+          ) : (
+            <div className="rc-list">
+              {upcomingRides.map((r) => (
+                <div key={r._id} className="rc-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800 }}>
+                        {r?.from} → {r?.to}
+                      </div>
+                      <div className="rc-note">
+                        {r?.date ? new Date(r.date).toLocaleDateString() : '—'} • {r?.seats || 1} seat(s) • ₹{r?.price ?? 0}
+                        {r?.parcelAllowed ? ' • Parcel allowed' : ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rc-driver-requests">
           <h2 className="rc-section-h">Booking requests</h2>
+          {bookingsErr && <div className="rc-error">{bookingsErr}</div>}
           {actionErr && <div className="rc-error">{actionErr}</div>}
           {actionMsg && <div className="rc-success">{actionMsg}</div>}
 

@@ -14,19 +14,22 @@ import logo from './assets/Logo.png'
 import './App.css'
 
 function PrivateRoute({ children, roles }) {
-  const { user } = useAuth()
+  const { user, isHydrated } = useAuth()
+  if (!isHydrated) return null
   if (!user) return <Navigate to="/login" replace />
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />
   return children
 }
 
 function NavBar() {
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
   const nav = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
-  const myRidesPath = user?.role === 'driver' ? '/driver' : '/my-rides'
+  const isAuthed = Boolean(user && token)
+
+  const myRidesPath = '/my-rides'
 
   const initials = (name = '') =>
     name
@@ -52,6 +55,10 @@ function NavBar() {
     return () => window.removeEventListener('mousedown', onMouseDown)
   }, [isMenuOpen])
 
+  useEffect(() => {
+    if (!isAuthed) setIsMenuOpen(false)
+  }, [isAuthed])
+
   const onLogout = () => {
     logout()
     setIsMenuOpen(false)
@@ -70,7 +77,7 @@ function NavBar() {
       </div>
 
       <div className="rc-nav-center">
-        {!user && (
+        {!isAuthed && (
           <div className="rc-nav-pill">
             <Link to="/login">Post a Ride</Link>
             <a href="#" onClick={(e) => e.preventDefault()}>Support</a>
@@ -81,11 +88,8 @@ function NavBar() {
       </div>
 
       <div className="rc-nav-right">
-        {user && (
+        {isAuthed && (
           <div className="rc-nav-profile" ref={menuRef}>
-            {user?.role === 'driver' && (
-              <Link to="/driver" className="rc-nav-dashboard">Dashboard</Link>
-            )}
             <button type="button" className="rc-nav-icon-btn" aria-label="Notifications">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M12 22a2.6 2.6 0 0 0 2.6-2.6H9.4A2.6 2.6 0 0 0 12 22Z" stroke="currentColor" strokeWidth="1.6" />
@@ -166,7 +170,7 @@ export default function App() {
           <Route
             path="/my-rides"
             element={
-              <PrivateRoute roles={["passenger"]}>
+              <PrivateRoute>
                 <MyRides />
               </PrivateRoute>
             }
