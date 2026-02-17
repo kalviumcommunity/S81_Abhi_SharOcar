@@ -13,10 +13,13 @@ const UserSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: true },
+    password: { type: String },
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
+    googleUid: { type: String },
     phone: { type: String },
     role: { type: String, enum: ['passenger', 'driver', 'admin'], required: true },
     avatarPath: { type: String },
+    avatarUrl: { type: String },
     documents: DocumentSchema
   },
   { timestamps: true }

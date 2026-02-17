@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { signInWithPopup } from 'firebase/auth'
 import { useAuth } from '../auth/AuthContext'
 import { api } from '../lib/api'
+import { auth, googleProvider } from '../lib/firebase'
 import './pages.css'
 
 export default function Signup() {
@@ -11,6 +13,7 @@ export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const nav = useNavigate()
   const { login } = useAuth()
 
@@ -35,6 +38,22 @@ export default function Signup() {
     }
   }
 
+  const onGoogle = async () => {
+    setError('')
+    setIsGoogleLoading(true)
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const idToken = await result.user.getIdToken()
+      const res = await api.googleAuth({ idToken, role })
+      login(res.token, res.user)
+      nav(res.user.role === 'driver' ? '/driver' : '/passenger')
+    } catch (e) {
+      setError(e.message || 'Google sign-up failed')
+    } finally {
+      setIsGoogleLoading(false)
+    }
+  }
+
   return (
     <div className="rc-auth rc-hero">
       <div className="rc-hero-overlay" />
@@ -44,6 +63,19 @@ export default function Signup() {
           <button className={role==='passenger'?'active':''} onClick={()=>setRole('passenger')}>Passenger</button>
           <button className={role==='driver'?'active':''} onClick={()=>setRole('driver')}>Driver</button>
         </div>
+
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          className="rc-btn ghost"
+          type="button"
+          onClick={onGoogle}
+          disabled={isGoogleLoading}
+        >
+          {isGoogleLoading ? 'Continuing…' : 'Continue with Google'}
+        </motion.button>
+
+        <div className="rc-auth-divider"><span>or</span></div>
+
         <form onSubmit={onSubmit}>
           <input placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} />
           <input placeholder="Email" type="email" value={email} onChange={e=>setEmail(e.target.value)} />

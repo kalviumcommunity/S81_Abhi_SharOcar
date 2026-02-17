@@ -16,6 +16,11 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   }),
+  googleAuth: (payload) => request('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }),
   me: (token) => request('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
   updateMe: (token, payload) => request('/api/users/me', {
     method: 'PATCH',

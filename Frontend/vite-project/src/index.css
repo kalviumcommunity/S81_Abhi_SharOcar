@@ -514,6 +514,29 @@ a {
   text-underline-offset: 3px;
 }
 
+.rc-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.rc-auth-divider::before,
+.rc-auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.rc-auth-divider span {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .rc-role {
   display: flex;
   gap: 8px;
