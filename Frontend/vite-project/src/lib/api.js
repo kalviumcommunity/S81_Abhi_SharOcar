@@ -1,7 +1,15 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002'
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002'
+const API_URL = String(RAW_API_URL).replace(/\/+$/, '')
 
 async function request(path, opts = {}) {
-  const res = await fetch(`${API_URL}${path}`, opts)
+  let res
+  try {
+    res = await fetch(`${API_URL}${path}`, opts)
+  } catch (e) {
+    const hint = `Network error calling API (${API_URL}). Check VITE_API_URL in your deployed frontend and ensure the backend allows your site via CORS (CLIENT_URLS).`
+    throw new Error(e?.message ? `${hint} (${e.message})` : hint)
+  }
+
   const isJson = res.headers.get('content-type')?.includes('application/json')
   const data = isJson ? await res.json() : await res.text()
   if (!res.ok) throw new Error(data?.message || data || 'Request failed')
@@ -9,8 +17,7 @@ async function request(path, opts = {}) {
 }
 
 export const api = {
-  signup: (formData) =>
-    fetch(`${API_URL}/api/auth/signup`, { method: 'POST', body: formData }).then(r => r.json()),
+  signup: (formData) => request('/api/auth/signup', { method: 'POST', body: formData }),
   login: (payload) => request('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

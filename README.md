@@ -70,6 +70,25 @@ npm run dev
 
 Open http://localhost:5173 and the API is on http://localhost:5002.
 
+## Deployment (Login Fix)
+
+If login works locally but fails after deploying, it is almost always one of these:
+
+1) Frontend is still calling localhost
+
+- In your frontend host (Netlify/Vercel/etc) set:
+	- `VITE_API_URL=https://<your-backend-domain>`
+
+2) Backend is blocking your deployed frontend via CORS
+
+- In your backend host set one of:
+	- `CLIENT_URLS=https://<your-frontend-domain>`
+	- Or multiple, comma-separated: `CLIENT_URLS=https://site1.com,https://site2.com`
+
+Notes:
+- This backend also allows common hosts like `*.netlify.app` and `*.vercel.app` by default.
+- If you use a custom domain, add it to `CLIENT_URLS`.
+
 Optional: Put your cinematic background at `Frontend/vite-project/public/bg.jpg` (the UI has a gradient fallback).
 
 ## Roles

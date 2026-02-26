@@ -218,7 +218,7 @@ export default function MyRides() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
                       {editingId === r._id ? (
                         <div style={{ width: '100%' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <div className="rc-edit-grid">
                             <input
                               value={editForm.from}
                               onChange={(e) => setEditForm((p) => ({ ...p, from: e.target.value }))}
@@ -288,7 +288,7 @@ export default function MyRides() {
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                          <div className="rc-edit-actions">
                             <button
                               type="button"
                               className="rc-btn small"
@@ -445,7 +445,7 @@ export default function MyRides() {
                                 </div>
                               )}
 
-                              <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                              <div className="rc-chat-row">
                                 <input
                                   value={chatText}
                                   onChange={(e) => setChatText(e.target.value)}

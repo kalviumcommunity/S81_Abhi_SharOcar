@@ -390,7 +390,7 @@ export default function DriverDashboard() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       <button type="button" className="rc-btn small ghost" onClick={() => toggleChat(b._id)}>
                         {chatOpenId === b._id ? 'Close chat' : 'Messages'}
                       </button>
@@ -422,7 +422,7 @@ export default function DriverDashboard() {
                             </div>
                           )}
 
-                          <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                          <div className="rc-chat-row">
                             <input
                               value={chatText}
                               onChange={(e) => setChatText(e.target.value)}

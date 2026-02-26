@@ -147,7 +147,7 @@ function NavBar() {
             )}
 
             {isNotifOpen && (
-              <div className="rc-nav-menu" role="menu" style={{ right: 84, minWidth: 320 }}>
+              <div className="rc-nav-menu" role="menu" style={{ right: 84, width: 'min(320px, calc(100vw - 40px))' }}>
                 <div className="rc-note" style={{ padding: '10px 12px' }}>Notifications</div>
                 {notifErr && <div className="rc-error" style={{ margin: 10 }}>{notifErr}</div>}
                 {isNotifLoading ? (

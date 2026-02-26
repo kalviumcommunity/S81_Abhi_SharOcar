@@ -548,6 +548,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 10px;
+	flex-wrap: wrap;
 }
 
 .rc-my-meta {
@@ -837,6 +838,38 @@
 		grid-template-columns: 1fr;
 	}
 	.rc-dash-actions {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Responsive helpers (used in MyRides + DriverDashboard) */
+.rc-edit-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+
+.rc-edit-actions {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-top: 12px;
+}
+
+.rc-chat-row {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-top: 6px;
+}
+
+.rc-chat-row input {
+	flex: 1 1 220px;
+	min-width: 0;
+}
+
+@media (max-width: 700px) {
+	.rc-edit-grid {
 		grid-template-columns: 1fr;
 	}
 }

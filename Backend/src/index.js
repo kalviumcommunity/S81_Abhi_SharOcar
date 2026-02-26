@@ -14,19 +14,38 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 const clientUrlEnv = process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173';
+
+const normalizeOrigin = (value) => String(value || '').trim().replace(/\/+$/, '');
+
 const allowedOrigins = clientUrlEnv
   .split(',')
-  .map((s) => s.trim())
+  .map(normalizeOrigin)
   .filter(Boolean);
+
+const allowedOriginSet = new Set(allowedOrigins);
+
+const allowedOriginRegexes = [
+  /^http:\/\/localhost:\d+$/,
+  /^https:\/\/localhost:\d+$/,
+  /^https:\/\/.*\.netlify\.app$/,
+  /^https:\/\/.*\.vercel\.app$/,
+  /^https:\/\/.*\.web\.app$/,
+  /^https:\/\/.*\.firebaseapp\.com$/,
+];
 
 app.use(
   cors({
     origin(origin, cb) {
       if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      if (/^http:\/\/localhost:\d{4}$/.test(origin)) return cb(null, true);
-      if (/^https:\/\/.*\.netlify\.app$/.test(origin)) return cb(null, true);
-      return cb(new Error('Not allowed by CORS'));
+      const normalized = normalizeOrigin(origin);
+
+      // Allow-all mode for quick deployments
+      if (allowedOriginSet.has('*')) return cb(null, true);
+
+      if (allowedOriginSet.has(normalized)) return cb(null, true);
+      if (allowedOriginRegexes.some((rx) => rx.test(normalized))) return cb(null, true);
+
+      return cb(new Error(`Not allowed by CORS: ${normalized}`));
     },
     credentials: true,
   })
