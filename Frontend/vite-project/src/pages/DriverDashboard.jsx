@@ -347,7 +347,7 @@ export default function DriverDashboard() {
             <div className="rc-list">
               {upcomingRides.map((r) => (
                 <div key={r._id} className="rc-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <div className="rc-card-header-flex">
                     <div>
                       <div style={{ fontWeight: 800 }}>
                         {r?.from} → {r?.to}
@@ -375,7 +375,7 @@ export default function DriverDashboard() {
             <div className="rc-list">
               {pendingBookings.map((b) => (
                 <div key={b._id} className="rc-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <div className="rc-card-header-flex">
                     <div>
                       <div style={{ fontWeight: 800 }}>
                         {b?.ride?.from} → {b?.ride?.to}

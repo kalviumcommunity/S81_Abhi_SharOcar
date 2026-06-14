@@ -215,7 +215,7 @@ export default function MyRides() {
               <div className="rc-list">
                 {rides.map((r) => (
                   <div key={r._id} className="rc-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                    <div className="rc-card-header-flex">
                       {editingId === r._id ? (
                         <div style={{ width: '100%' }}>
                           <div className="rc-edit-grid">

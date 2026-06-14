@@ -873,3 +873,20 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+.rc-card-header-flex {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	width: 100%;
+}
+
+@media (max-width: 600px) {
+	.rc-card-header-flex {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 14px;
+	}
+}
